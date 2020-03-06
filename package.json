@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/anacanm/taskApp#readme",
   "dependencies": {
-    "mongodb": "^3.5.4"
+    "chalk": "^3.0.0",
+    "mongodb": "^3.5.4",
+    "mongoose": "^5.9.3"
   }
 }
