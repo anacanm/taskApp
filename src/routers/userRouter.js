@@ -19,25 +19,29 @@ router.get('/users/id/:id', (req, res) => {
 //if the user wants to create data, they would be posting it.
 //req = request(requesting from the server)
 //res = respond(responding to the client)
-router.post('/users', (req, res) => {
+router.post('/users/signup', async (req, res) => {
 	//when a user posts information to the server
-	const user = new User(req.body); //make a new user with the data posted
+	try {
+		const user = new User(req.body); //make a new user with the data posted
+		//THEN, generate a token for that user, the updated user then gets saved to the DB in generateAuthToken()
 
-	user
-		.save() //saves the user to the database
-		.then(() => res.status(201).send(user)) //sends the user to the client
-		.catch((err) => res.status(400).send(err)); //if there is an error, update the status to 400, and send the error
+		const token = await user.generateAuthToken();
+		res.status(200).send({ user, token });
+	} catch (err) {
+		res.status(400).send(err);
+	}
 });
 
-router.post('/users/login', async (req,res) => {
-    try {
-        const user = await User.findByCredentials(req.body.email, req.body.password)
-        res.status(200).send(user)
-        //NOTE: user login is not fully flushed out, you can only log in to see that you logged in at the moment
-    } catch (err) {
-        res.status(400).send(err)
-    }
-})
+router.post('/users/login', async (req, res) => {
+	try {
+		const user = await User.findByCredentials(req.body.email, req.body.password);
+		const token = await user.generateAuthToken();
+		res.status(200).send({ user, token });
+		//NOTE: user login is not fully flushed out, you can only log in to see that you logged in at the moment
+	} catch (err) {
+		res.status(400).send(err);
+	}
+});
 
 router.patch('/users/update/:id', async (req, res) => {
 	// sets document specified by the id to req.body (what data is sent to the endpoint)

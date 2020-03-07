@@ -3,7 +3,8 @@ const mongoose = require('mongoose')
 //                mongodb://localhost ip   /dbname
 mongoose.connect('mongodb://127.0.0.1:27017/taskAppApi', {
     useNewUrlParser: true,
-    useCreateIndex: true
+    useCreateIndex: true,
+    useUnifiedTopology: true
 })
 
 

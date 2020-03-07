@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const chalk = require('chalk');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
 	name: {
@@ -36,21 +37,37 @@ const userSchema = new mongoose.Schema({
 		trim: true,
 		validate(value) {
 			if (value.length < 6) {
-				throw new Error(
-					chalk.red('Password must be at least 6 characters long')
-				);
+				throw new Error(chalk.red('Password must be at least 6 characters long'));
 			}
 			if (value.toLowerCase().includes('password')) {
-				throw new Error(
-					chalk.red("Password cannot contain the word 'password'")
-				);
+				throw new Error(chalk.red("Password cannot contain the word 'password'"));
 			}
 		}
-	}
+	},
+	tokens: [
+		{
+			token: {
+				type: String,
+				required: true
+			}
+		}
+	]
 });
 
+//methods are accessable on the instance
+userSchema.methods.generateAuthToken = async function() {
+	//when called, generates an authentication token and adds it to that user's tokens array, then saves the updated user to the database
+	const token = jwt.sign({ _id: this._id.toString() }, 'randomcharacters');
+
+	this.tokens = this.tokens.concat({ token });
+
+	await this.save();
+	return token;
+};
+
+//static methods are accessable on the model
 userSchema.statics.findByCredentials = async (email, password) => {
-    //returns a user document if the email and password match with a record
+	//returns a user document if the email and password match with a record
 	const user = await User.findOne({ email });
 
 	if (!user) {
