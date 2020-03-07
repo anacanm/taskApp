@@ -22,24 +22,30 @@ app.get('/users', (req, res) => {     //sending a get request to the users endpo
         .catch(() => res.status(500).send())
 })
 
-
 app.get('/users/id/:id', (req, res) => {    //:id acts as a dynamic route
     User.findById(req.params.id)             //req.params has the route parameter that gets provided in the form of an object with the property "id"
-        .then( data => res.status(200).send(data))
+        .then(data => res.status(200).send(data))
         .catch(err => res.status(500).send(err))
 })
 
 
 
-app.get('/tasks', (req, res) => {
+app.get('/tasks', (req, res) => {    //returns all tasks
     Task.find({})
         .then(data => res.status(200).send(data))
         .catch(err => res.status(500).send(err))
 })
 
-app.get('/tasks/id/:id', (req, res) => {
+app.get('/tasks/id/:id', (req, res) => {      //returns the specified task
     Task.findById(req.params.id)
         .then(data => res.status(200).send(data))
+        .catch(err => res.status(500).send(err))
+})
+
+
+app.get('/tasks/incomplete', (req, res) => {  //returns the tasks that are incomplete
+    Task.find({ completed: false })
+        .then(task => res.status(200).send(task))
         .catch(err => res.status(500).send(err))
 })
 
@@ -56,7 +62,7 @@ app.post('/users', (req, res) => {    //when a user posts information to the ser
 })
 
 
-app.post('/tasks', (req, res) => {
+app.post('/tasks/add', (req, res) => {    //adds a task to the db
     const task = new Task(req.body)
 
     task.save()
@@ -65,7 +71,27 @@ app.post('/tasks', (req, res) => {
 })
 
 
+app.patch('/users/id/:id', (req, res) => {     // set's user's age to 1 if they are 0
+    User.findByIdAndUpdate(req.params.id, { age: 1 })
+        .then(user => res.status(200).send(user))
+        .catch(err => res.status(500).send(err))
+})
 
+
+app.patch('/tasks/complete/:id', (req, res) => {       //completes a task specified by id
+    Task.findByIdAndUpdate(req.params.id, { completed: true })
+        .then(data => Task.findById(data._id))
+        .then(data => res.status(200).send(data))  
+        .catch(err => res.status(500).send(err))
+
+})
+
+
+
+app.delete('/tasks/delete/:id', (req, res) => {    //deletes task by id
+    Task.findByIdAndDelete(req.params.id)
+        .then(data => res.status(200).send(data))
+})
 
 app.listen(PORT, () => {
     console.log(chalk.green("Server listening on"), chalk.yellow(PORT))
