@@ -71,7 +71,7 @@ app.post('/tasks/add', (req, res) => {    //adds a task to the db specified by t
 })
 
 
-app.patch('/users/id/:id', async (req, res) => {     // sets document specified by the id to req.body (what data is sent to the endpoint)
+app.patch('/users/update/:id', async (req, res) => {     // sets document specified by the id to req.body (what data is sent to the endpoint)
     try {
         const acceptedUpdates = ["name", "email", "age", "password"]
         const updates = Object.keys(req.body)
@@ -95,9 +95,17 @@ app.patch('/users/id/:id', async (req, res) => {     // sets document specified 
 })
 
 
-app.patch('/tasks/complete/:id', async (req, res) => { //completes a task specified by id
+app.patch('/tasks/update/:id', async (req, res) => { //completes a task specified by id
     try {
-        const task = Task.findByIdAndUpdate(req.params.id, { completed: true }, { new: true }) //the new option will specify that findByIdAndUpdate should return the modified user
+        const acceptedUpdates = ["description", "completed"]
+        const updates = Object.keys(req.body)
+        const isValid = updates.every(update => acceptedUpdates.includes(update))
+
+        if(!isValid){
+            return res.status(400).send({ error: "Nonvalid updates"})
+        }
+
+        const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }) //the new option will specify that findByIdAndUpdate should return the modified user
         if(!task){
             res.status(404).send()
         }
