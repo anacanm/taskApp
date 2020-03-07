@@ -29,6 +29,16 @@ router.post('/users', (req, res) => {
 		.catch((err) => res.status(400).send(err)); //if there is an error, update the status to 400, and send the error
 });
 
+router.post('/users/login', async (req,res) => {
+    try {
+        const user = await User.findByCredentials(req.body.email, req.body.password)
+        res.status(200).send(user)
+        //NOTE: user login is not fully flushed out, you can only log in to see that you logged in at the moment
+    } catch (err) {
+        res.status(400).send(err)
+    }
+})
+
 router.patch('/users/update/:id', async (req, res) => {
 	// sets document specified by the id to req.body (what data is sent to the endpoint)
 	try {
