@@ -77,8 +77,8 @@ app.patch('/users/update/:id', async (req, res) => {     // sets document specif
         const updates = Object.keys(req.body)
         const isValid = updates.every(update => acceptedUpdates.includes(update))
 
-        if(!isValid){
-            return res.status(400).send({ error: "Nonvalid updates"})
+        if (!isValid) {
+            return res.status(400).send({ error: "Nonvalid updates" })
         }
 
         const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
@@ -101,12 +101,12 @@ app.patch('/tasks/update/:id', async (req, res) => { //completes a task specifie
         const updates = Object.keys(req.body)
         const isValid = updates.every(update => acceptedUpdates.includes(update))
 
-        if(!isValid){
-            return res.status(400).send({ error: "Nonvalid updates"})
+        if (!isValid) {
+            return res.status(400).send({ error: "Nonvalid updates" })
         }
 
         const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }) //the new option will specify that findByIdAndUpdate should return the modified user
-        if(!task){
+        if (!task) {
             res.status(404).send()
         }
         else {
@@ -115,14 +115,39 @@ app.patch('/tasks/update/:id', async (req, res) => { //completes a task specifie
     }
     catch (err) {
         res.status(400).send(err)
-     }
+    }
 })
 
+app.delete('/users/delete/:id', async (req, res) => { //deletes user by id
+    try {
+        const user = await User.findByIdAndDelete(req.params.id)
+        if (!user) {
+            res.status(404).send()
+        }
+        else {
+            res.status(200).send(user)
+        }
+    }
+    catch (err) {
+        res.status(500).send(err)
+    }
+})
+
+app.delete('/tasks/delete/:id', async (req, res) => {    //deletes task by id
+    try {
+        const task = await Task.findByIdAndDelete(req.params.id)
+        if (!task) {
+            res.status(404).send()
+        }
+        else {
+            res.status(200).send(task)
+        }
+    }
+    catch (err) {
+        res.status(500).send(err)
+    }
 
 
-app.delete('/tasks/delete/:id', (req, res) => {    //deletes task by id
-    Task.findByIdAndDelete(req.params.id)
-        .then(data => res.status(200).send(data))
 })
 
 app.listen(PORT, () => {
