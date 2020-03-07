@@ -57,12 +57,23 @@ const userSchema = new mongoose.Schema({
 //methods are accessable on the instance
 userSchema.methods.generateAuthToken = async function() {
 	//when called, generates an authentication token and adds it to that user's tokens array, then saves the updated user to the database
-	const token = jwt.sign({ _id: this._id.toString() }, 'randomcharacters', {expiresIn: '1 day'});
+	const token = jwt.sign({ _id: this._id.toString() }, 'randomcharacters', {
+		expiresIn: '1 day'
+	});
 
 	this.tokens = this.tokens.concat({ token });
 
 	await this.save();
 	return token;
+};
+
+userSchema.methods.toJSON = function() {
+	let userObject = this.toObject();
+
+	delete userObject.password;
+	delete userObject.tokens;
+
+	return userObject;
 };
 
 //static methods are accessable on the model
