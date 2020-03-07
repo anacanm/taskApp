@@ -1,12 +1,13 @@
 const express = require('express');
-const router = express.Router();
-const { User } = require('../models/user');
 
-router.get('/users', (req, res) => {
-	//sending a get request to the users endpoint will return all users from the database
-	User.find({}) //using an empty object as the filter will return all documents in the users collection in the database
-		.then((users) => res.send(users))
-		.catch(() => res.status(500).send());
+const { User } = require('../models/user');
+const { auth } = require('../middleware/auth');
+
+const router = new express.Router();
+
+router.get('/users/me', auth, (req, res) => {
+	//sends user's profile if they are authenticated.
+	res.send(req.user);
 });
 
 router.get('/users/id/:id', (req, res) => {
@@ -26,7 +27,7 @@ router.post('/users/signup', async (req, res) => {
 		//THEN, generate a token for that user, the updated user then gets saved to the DB in generateAuthToken()
 
 		const token = await user.generateAuthToken();
-		res.status(200).send({ user, token });
+		res.status(201).send({ user, token });
 	} catch (err) {
 		res.status(400).send(err);
 	}
@@ -40,6 +41,28 @@ router.post('/users/login', async (req, res) => {
 		//NOTE: user login is not fully flushed out, you can only log in to see that you logged in at the moment
 	} catch (err) {
 		res.status(400).send(err);
+	}
+});
+
+router.post('/users/logout', auth, async (req, res) => {
+	//logs authorized user out of specific session
+	try {
+		req.user.tokens = req.user.tokens.filter((elem) => elem.token !== req.token);
+		await req.user.save(); //updates user's DB document to have updated array with removed token
+		res.status(200).send('logout successful');
+	} catch (err) {
+		res.status(500).send(err);
+	}
+});
+
+router.post('/users/logoutAll', auth, async (req, res) => {
+	//logs authorized user out of all sessions
+	try {
+		req.user.tokens = [];
+		await req.user.save(); //updates user's DB document to have updated array with no auth tokens
+		res.status(200).send('logged out of all sessions');
+	} catch (err) {
+		res.status(500).send(err);
 	}
 });
 
