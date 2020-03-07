@@ -62,7 +62,7 @@ app.post('/users', (req, res) => {    //when a user posts information to the ser
 })
 
 
-app.post('/tasks/add', (req, res) => {    //adds a task to the db
+app.post('/tasks/add', (req, res) => {    //adds a task to the db specified by the body
     const task = new Task(req.body)
 
     task.save()
@@ -71,19 +71,35 @@ app.post('/tasks/add', (req, res) => {    //adds a task to the db
 })
 
 
-app.patch('/users/id/:id', (req, res) => {     // set's user's age to 1 if they are 0
-    User.findByIdAndUpdate(req.params.id, { age: 1 })
-        .then(user => res.status(200).send(user))
-        .catch(err => res.status(500).send(err))
+app.patch('/users/id/:id', async (req, res) => {     // sets document specified by the id to req.body (what data is sent to the endpoint)
+    try {
+        const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+        if (!user) {
+            res.status(404).send()
+        }
+        else {
+            res.status(200).send(user)
+        }
+    }
+    catch (err) {
+        res.status(400).send(err)
+    }
 })
 
 
-app.patch('/tasks/complete/:id', (req, res) => {       //completes a task specified by id
-    Task.findByIdAndUpdate(req.params.id, { completed: true })
-        .then(data => Task.findById(data._id))
-        .then(data => res.status(200).send(data))  
-        .catch(err => res.status(500).send(err))
-
+app.patch('/tasks/complete/:id', async (req, res) => { //completes a task specified by id
+    try {
+        const task = Task.findByIdAndUpdate(req.params.id, { completed: true }, { new: true }) //the new option will specify that findByIdAndUpdate should return the modified user
+        if(!task){
+            res.status(404).send()
+        }
+        else {
+            res.status(200).send(task)
+        }
+    }
+    catch (err) {
+        res.status(400).send(err)
+     }
 })
 
 
