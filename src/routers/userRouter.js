@@ -30,8 +30,7 @@ router.post('/users/login', async (req, res) => {
 	try {
 		const user = await User.findByCredentials(req.body.email, req.body.password);
 		const token = await user.generateAuthToken();
-		res.status(200).send({ user, token });
-		//NOTE: user login is not fully flushed out, you can only log in to see that you logged in at the moment
+		res.status(200).send({ user, token });  //sends back token so that user can respond with the token in its header
 	} catch (err) {
 		res.status(400).send(err);
 	}

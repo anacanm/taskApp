@@ -54,6 +54,16 @@ const userSchema = new mongoose.Schema({
 	]
 });
 
+
+userSchema.virtual('tasks', { //virtual does
+	ref: 'Task',
+	localField: '_id',
+	foreignField: 'owner'
+})
+
+
+
+
 //methods are accessable on the instance
 userSchema.methods.generateAuthToken = async function() {
 	//when called, generates an authentication token and adds it to that user's tokens array, then saves the updated user to the database
