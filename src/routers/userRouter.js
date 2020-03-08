@@ -10,13 +10,6 @@ router.get('/users/me', auth, (req, res) => {
 	res.send(req.user);
 });
 
-router.get('/users/id/:id', (req, res) => {
-	//gets user by id, :id acts as a dynamic route
-	User.findById(req.params.id) //req.params has the route parameter that gets provided in the form of an object with the property "id"
-		.then((data) => res.status(200).send(data))
-		.catch((err) => res.status(500).send(err));
-});
-
 //if the user wants to create data, they would be posting it.
 //req = request(requesting from the server)
 //res = respond(responding to the client)
@@ -26,7 +19,7 @@ router.post('/users/signup', async (req, res) => {
 		const user = new User(req.body); //make a new user with the data posted
 		//THEN, generate a token for that user, the updated user then gets saved to the DB in generateAuthToken()
 
-		const token = await user.generateAuthToken();
+		const token = await user.generateAuthToken(); //in generateAuthToken, the token gets saved to the user's tokens array
 		res.status(201).send({ user, token });
 	} catch (err) {
 		res.status(400).send(err);
@@ -66,7 +59,7 @@ router.post('/users/logoutAll', auth, async (req, res) => {
 	}
 });
 
-router.patch('/users/update/:id', async (req, res) => {
+router.patch('/users/me', auth, async (req, res) => {
 	// sets document specified by the id to req.body (what data is sent to the endpoint)
 	try {
 		const acceptedUpdates = ['name', 'email', 'age', 'password'];
@@ -80,30 +73,21 @@ router.patch('/users/update/:id', async (req, res) => {
 		//removed findByIdAndUpdate, because it avoids middleware
 
 		//the below code sets each property of the user to the properties passed in the patch request
-		const user = await User.findById(req.params.id);
-		updates.forEach((update) => (user[update] = req.body[update])); //updates is an array of the keys, so for every key passed, update the user's value to the passed value
+		updates.forEach((update) => (req.user[update] = req.body[update])); //updates is an array of the keys, so for every key passed, update the user's value to the passed value
 
-		await user.save(); //ensures that middleware gets activated
+		await req.user.save(); //ensures that middleware gets activated
 
-		if (!user) {
-			res.status(404).send();
-		} else {
-			res.status(200).send(user);
-		}
+		res.status(200).send(req.user);
 	} catch (err) {
 		res.status(400).send(err);
 	}
 });
 
-router.delete('/users/delete/:id', async (req, res) => {
+router.delete('/users/me/delete', auth, async (req, res) => {
 	//deletes user by id
 	try {
-		const user = await User.findByIdAndDelete(req.params.id);
-		if (!user) {
-			res.status(404).send();
-		} else {
-			res.status(200).send(user);
-		}
+		await req.user.remove();
+		res.send(req.user);
 	} catch (err) {
 		res.status(500).send(err);
 	}
