@@ -53,7 +53,7 @@ router.post('/tasks/add', auth, async (req, res) => {
 	}
 });
 
-router.patch('/tasks/update/:id', async (req, res) => {
+router.patch('/tasks/update/:id', auth, async (req, res) => {
 	//completes a task specified by id
 	try {
 		const acceptedUpdates = ['description', 'completed'];
@@ -64,14 +64,13 @@ router.patch('/tasks/update/:id', async (req, res) => {
 			return res.status(400).send({ error: 'Nonvalid updates' });
 		}
 
-		const task = await Task.findById(req.params.id);
-		updates.forEach((update) => (task[update] = req.body[update]));
-
-		task.save();
+		const task = await Task.findOne({ _id: req.params.id, owner: req.user._id });
 
 		if (!task) {
 			res.status(404).send();
 		} else {
+			updates.forEach((update) => (task[update] = req.body[update]));
+			await task.save();
 			res.status(200).send(task);
 		}
 	} catch (err) {
@@ -79,10 +78,10 @@ router.patch('/tasks/update/:id', async (req, res) => {
 	}
 });
 
-router.delete('/tasks/delete/:id', async (req, res) => {
+router.delete('/tasks/delete/:id', auth, async (req, res) => {
 	//deletes task by id
 	try {
-		const task = await Task.findByIdAndDelete(req.params.id);
+		const task = await Task.findOneAndDelete({owner: req.user._id, _id:req.params.id});
 		if (!task) {
 			res.status(404).send();
 		} else {
