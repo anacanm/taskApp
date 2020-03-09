@@ -4,6 +4,8 @@ const chalk = require('chalk');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const { Task } = require('./task');
+
 const userSchema = new mongoose.Schema({
 	name: {
 		type: String,
@@ -54,15 +56,12 @@ const userSchema = new mongoose.Schema({
 	]
 });
 
-
-userSchema.virtual('tasks', { //virtual does
+userSchema.virtual('tasks', {
+	//virtual does
 	ref: 'Task',
 	localField: '_id',
 	foreignField: 'owner'
-})
-
-
-
+});
 
 //methods are accessable on the instance
 userSchema.methods.generateAuthToken = async function() {
@@ -119,6 +118,12 @@ userSchema.pre('save', async function(next) {
 	}
 
 	next(); //you call next() at the end of this function to signifiy that the operation has completed.
+});
+
+//delete all of the user's tasks when the user account is removed
+userSchema.pre('remove', async function(next) {
+	await Task.deleteMany({ owner: this._id });
+	next();
 });
 
 const User = mongoose.model('User', userSchema);
