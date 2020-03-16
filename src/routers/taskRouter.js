@@ -7,7 +7,13 @@ const router = express.Router();
 router.get('/tasks', auth, async (req, res) => {
 	//returns all tasks created by authenticated user
 	try {
-		const tasks = await Task.find({ owner: req.user._id });
+		const options = {
+			owner:req.user._id
+		}
+		if(req.query.completed){
+			options.completed = (req.query.completed === 'true')
+		}
+		const tasks = await Task.find(options);
 		res.status(200).send(tasks);
 	} catch (err) {
 		res.status(400).send(err);
@@ -28,16 +34,6 @@ router.get('/tasks/id', auth, async (req, res) => {
 	}
 });
 
-router.get('/tasks/incomplete', auth, async (req, res) => {
-	//returns the tasks that are incomplete
-	try {
-		const tasks = await Task.find({ completed: false, owner: req.user._id });
-
-		res.status(200).send(tasks);
-	} catch (err) {
-		res.status(400).send(err);
-	}
-});
 
 router.post('/tasks/add', auth, async (req, res) => {
 	//adds a task to the db specified by the body, and adds the created by according to the authenticated user
