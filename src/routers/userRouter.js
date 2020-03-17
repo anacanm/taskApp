@@ -1,4 +1,6 @@
 const express = require('express');
+const multer = require('multer');
+const sharp = require('sharp');
 
 const { User } = require('../models/user');
 const { auth } = require('../middleware/auth');
@@ -6,92 +8,132 @@ const { auth } = require('../middleware/auth');
 const router = new express.Router();
 
 router.get('/users/me', auth, (req, res) => {
-	//sends user's profile if they are authenticated.
-	res.send(req.user);
+    //sends user's profile if they are authenticated.
+    res.send(req.user);
+});
+
+router.get('/users/:id/avatar', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user || !user.avatar) {
+            throw new Error();
+        }
+        res.set('Content-Type', 'image/png');
+        res.send(user.avatar);
+    } catch (err) {
+        res.status(404).send();
+    }
 });
 
 //if the user wants to create data, they would be posting it.
 //req = request(requesting from the server)
 //res = respond(responding to the client)
 router.post('/users/signup', async (req, res) => {
-	//when a user posts information to the server
-	try {
-		const user = new User(req.body); //make a new user with the data posted
-		//THEN, generate a token for that user, the updated user then gets saved to the DB in generateAuthToken()
+    //when a user posts information to the server
+    try {
+        const user = new User(req.body); //make a new user with the data posted
+        //THEN, generate a token for that user, the updated user then gets saved to the DB in generateAuthToken()
 
-		const token = await user.generateAuthToken(); //in generateAuthToken, the token gets saved to the user's tokens array
-		res.status(201).send({ user, token });
-	} catch (err) {
-		res.status(400).send(err);
-	}
+        const token = await user.generateAuthToken(); //in generateAuthToken, the token gets saved to the user's tokens array
+        res.status(201).send({ user, token });
+    } catch (err) {
+        res.status(400).send(err);
+    }
 });
 
 router.post('/users/login', async (req, res) => {
-	try {
-		const user = await User.findByCredentials(req.body.email, req.body.password);
-		const token = await user.generateAuthToken();
-		res.status(200).send({ user, token });  //sends back token so that user can respond with the token in its header
-	} catch (err) {
-		res.status(400).send(err);
-	}
+    try {
+        const user = await User.findByCredentials(req.body.email, req.body.password);
+        const token = await user.generateAuthToken();
+        res.status(200).send({ user, token }); //sends back token so that user can respond with the token in its header
+    } catch (err) {
+        res.status(400).send(err);
+    }
 });
 
 router.post('/users/logout', auth, async (req, res) => {
-	//logs authorized user out of specific session
-	try {
-		req.user.tokens = req.user.tokens.filter((elem) => elem.token !== req.token);
-		await req.user.save(); //updates user's DB document to have updated array with removed token
-		res.status(200).send('logout successful');
-	} catch (err) {
-		res.status(500).send(err);
-	}
+    //logs authorized user out of specific session
+    try {
+        req.user.tokens = req.user.tokens.filter((elem) => elem.token !== req.token);
+        await req.user.save(); //updates user's DB document to have updated array with removed token
+        res.status(200).send('logout successful');
+    } catch (err) {
+        res.status(500).send(err);
+    }
 });
 
 router.post('/users/logoutAll', auth, async (req, res) => {
-	//logs authorized user out of all sessions
-	try {
-		req.user.tokens = [];
-		await req.user.save(); //updates user's DB document to have updated array with no auth tokens
-		res.status(200).send('logged out of all sessions');
-	} catch (err) {
-		res.status(500).send(err);
-	}
+    //logs authorized user out of all sessions
+    try {
+        req.user.tokens = [];
+        await req.user.save(); //updates user's DB document to have updated array with no auth tokens
+        res.status(200).send('logged out of all sessions');
+    } catch (err) {
+        res.status(500).send(err);
+    }
+});
+const upload = multer({
+    limits: {
+        fileSize: 1000000
+    },
+    fileFilter(req, file, cb) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+            return cb(new Error('Please upload an image under 1MB'));
+        }
+        cb(undefined, true);
+    }
+});
+
+router.post('/users/me/avatar', auth, upload.single('avatar'), async (req, res) => {
+    const buffer = await sharp(req.file.buffer).resize({width: 250, height: 250}).png().toBuffer()
+    req.user.avatar = buffer
+    await req.user.save();
+    res.send();
+},(error, req, res, next) => {
+    res.status(400).send({ error: error.message });
 });
 
 router.patch('/users/me', auth, async (req, res) => {
-	// sets document specified by the id to req.body (what data is sent to the endpoint)
-	try {
-		const acceptedUpdates = ['name', 'email', 'age', 'password'];
-		const updates = Object.keys(req.body); // these are the keys of the object that the client is attempting to send
-		const isValid = updates.every((update) => acceptedUpdates.includes(update));
+    // sets document specified by the id to req.body (what data is sent to the endpoint)
+    try {
+        const acceptedUpdates = ['name', 'email', 'age', 'password'];
+        const updates = Object.keys(req.body); // these are the keys of the object that the client is attempting to send
+        const isValid = updates.every((update) => acceptedUpdates.includes(update));
 
-		if (!isValid) {
-			return res.status(400).send({ error: 'Nonvalid updates' });
-		}
+        if (!isValid) {
+            return res.status(400).send({ error: 'Nonvalid updates' });
+        }
 
-		//removed findByIdAndUpdate, because it avoids middleware
+        //removed findByIdAndUpdate, because it avoids middleware
 
-		//the below code sets each property of the user to the properties passed in the patch request
-		updates.forEach((update) => (req.user[update] = req.body[update])); //updates is an array of the keys, so for every key passed, update the user's value to the passed value
+        //the below code sets each property of the user to the properties passed in the patch request
+        updates.forEach((update) => (req.user[update] = req.body[update])); //updates is an array of the keys, so for every key passed, update the user's value to the passed value
 
-		await req.user.save(); //ensures that middleware gets activated
+        await req.user.save(); //ensures that middleware gets activated
 
-		res.status(200).send(req.user);
-	} catch (err) {
-		res.status(400).send(err);
-	}
+        res.status(200).send(req.user);
+    } catch (err) {
+        res.status(400).send(err);
+    }
 });
 
 router.delete('/users/me/delete', auth, async (req, res) => {
-	//deletes user by id
-	try {
-		await req.user.remove();
-		res.send(req.user);
-	} catch (err) {
-		res.status(500).send(err);
-	}
+    //deletes user by id
+    try {
+        await req.user.remove();
+        res.send(req.user);
+    } catch (err) {
+        res.status(500).send(err);
+    }
+});
+
+router.delete('/users/me/avatar', auth, async (req, res) => {
+    req.user.avatar = undefined;
+    await req.user.save();
+    res.send();
 });
 
 module.exports = {
-	userRouter: router
+    userRouter: router
 };
